@@ -1,110 +1,102 @@
 <!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Tiny Among Us (Mobile)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Tiny Among Us</title>
 <style>
   body {
     margin: 0;
-    height: 200vh;
-    background: #111;
-    overflow: hidden;
-    touch-action: none;
-  }#character { width: 40px; height: 60px; background: red; border-radius: 20px 20px 10px 10px; position: fixed; top: 100px; left: 100px; }
+    font-family: sans-serif;
+    background: #0d0d0d;
+    color: white;
+    text-align: center;
+  }h1 { margin-top: 40px; }
+
+.btn { margin: 15px; padding: 15px 25px; font-size: 18px; border: none; border-radius: 10px; cursor: pointer; }
+
+.android { background: #3ddc84; } .ios { background: #007aff; color: white; }
+
+#preview { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
+
+#phone { width: 300px; height: 600px; background: #222; margin: 40px auto; border-radius: 30px; position: relative; overflow: hidden; }
+
+#character { width: 40px; height: 60px; background: red; border-radius: 20px 20px 10px 10px; position: absolute; top: 200px; left: 120px; }
 
 #visor { width: 25px; height: 15px; background: lightblue; border-radius: 10px; position: absolute; top: 15px; left: 7px; }
 
-/* Mobile buttons */ .controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; }
-
-.btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; user-select: none; } </style>
+#okBtn { margin-top: 10px; padding: 10px 20px; font-size: 18px; } </style>
 
 </head>
-<body><div id="character">
-  <div id="visor"></div>
-</div><div class="controls">
-  <div>
-    <div class="btn" id="left">⬅️</div>
-    <div class="btn" id="right">➡️</div>
+<body><h1>Download Tiny Among Us</h1>
+<button class="btn android" onclick="showPreview()">Download for Android</button>
+<button class="btn ios" onclick="showPreview()">Download for iOS</button><div id="preview">
+  <div id="phone">
+    <div id="character">
+      <div id="visor"></div>
+    </div>
   </div>
-  <div class="btn" id="jump">⬆️</div>
+  <button id="okBtn" onclick="hidePreview()">OK</button>
 </div><script>
+function showPreview() {
+  document.getElementById("preview").style.display = "block";
+}
+
+function hidePreview() {
+  document.getElementById("preview").style.display = "none";
+}
+
 const char = document.getElementById("character");
+let x = 120;
+let y = 200;
+let vx = 1.5;
+let vy = 0;
+let gravity = 0.4;
 
-let x = 100;
-let y = 100;
-let velocityY = 0;
-let gravity = 0.5;
-let jumping = false;
-
-let moveLeft = false;
-let moveRight = false;
-
-// Touch drag
-let isDragging = false;
+let dragging = false;
 let offsetX, offsetY;
 
 char.addEventListener("touchstart", (e) => {
-  isDragging = true;
-  const touch = e.touches[0];
-  offsetX = touch.clientX - char.offsetLeft;
-  offsetY = touch.clientY - char.offsetTop;
+  dragging = true;
+  const t = e.touches[0];
+  offsetX = t.clientX - x;
+  offsetY = t.clientY - y;
 });
 
 document.addEventListener("touchmove", (e) => {
-  if (isDragging) {
-    const touch = e.touches[0];
-    x = touch.clientX - offsetX;
-    y = touch.clientY - offsetY;
+  if (dragging) {
+    const t = e.touches[0];
+    x = t.clientX - offsetX - (window.innerWidth/2 - 150);
+    y = t.clientY - offsetY - 40;
   }
 });
 
 document.addEventListener("touchend", () => {
-  isDragging = false;
+  dragging = false;
 });
 
-// Buttons
-function holdButton(btn, action) {
-  btn.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    action(true);
-  });
+function loop() {
+  if (!dragging) {
+    x += vx;
 
-  btn.addEventListener("touchend", () => {
-    action(false);
-  });
-}
+    // bounce on walls
+    if (x < 0 || x > 260) vx *= -1;
 
-holdButton(document.getElementById("left"), (v) => moveLeft = v);
-holdButton(document.getElementById("right"), (v) => moveRight = v);
+    vy += gravity;
+    y += vy;
 
-// Jump button
-const jumpBtn = document.getElementById("jump");
-jumpBtn.addEventListener("touchstart", () => {
-  if (!jumping) {
-    velocityY = -10;
-    jumping = true;
-  }
-});
-
-function gameLoop() {
-  if (moveLeft) x -= 3;
-  if (moveRight) x += 3;
-
-  velocityY += gravity;
-  y += velocityY;
-
-  if (y > window.innerHeight - 60) {
-    y = window.innerHeight - 60;
-    velocityY = 0;
-    jumping = false;
+    // ground
+    if (y > 540) {
+      y = 540;
+      vy = -8; // auto jump
+    }
   }
 
   char.style.left = x + "px";
   char.style.top = y + "px";
 
-  requestAnimationFrame(gameLoop);
+  requestAnimationFrame(loop);
 }
 
-gameLoop();
+loop();
 </script></body>
 </html>

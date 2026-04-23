@@ -2,119 +2,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tiny Among Us PWA</title>
-<link rel="manifest" href="manifest.json">
+<title>Among Pet</title>
 <style>
-  body { margin:0; background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; overflow:hidden; }
-  .btn { margin:15px; padding:15px 25px; font-size:18px; border:none; border-radius:10px; }
-  .android { background:#3ddc84; }
-  .ios { background:#007aff; color:white; }#preview { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); } #phone { width:300px; height:600px; background:#222; margin:40px auto; border-radius:30px; position:relative; overflow:hidden; }
+  body { margin:0; font-family:sans-serif; background:#0b0b0f; color:white; text-align:center; overflow:hidden; }#ui { padding:10px; }
 
-.crew { position:absolute; width:40px; height:60px; }
+.bar { width:80%; height:16px; background:#333; margin:8px auto; border-radius:10px; overflow:hidden; } .fill { height:100%; width:100%; transition:0.2s; }
 
-/* Among Us style using SVG */ .crew svg { width:100%; height:100%; }
+#pet { width:90px; margin:10px auto; font-size:60px; user-select:none; }
 
-#hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:#333; padding:10px; border-radius:10px; display:none; } </style>
+button { padding:10px 18px; margin:6px; border:none; border-radius:10px; font-size:15px; }
+
+#world { position:fixed; inset:0; overflow:hidden; }
+
+.crewmate { width:50px; height:70px; position:absolute; transform-origin:center; }
+
+.bubble { width:100%; height:100%; }
+
+#night { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; }
+
+#hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); font-size:12px; opacity:0.7; } </style>
 
 </head>
-<body><h1>Tiny Among Us</h1>
-<button class="btn android" onclick="start()">Download Android</button>
-<button class="btn ios" onclick="start()">Download iOS</button><div id="preview"><div id="phone"></div></div>
-<div id="hint">Add to Home Screen ↑</div><script>
-const phone = document.getElementById('phone');
-let crew = [];
+<body><div id="ui">
+  <h2>🐾 Among Pet</h2>  <div id="pet">🔴</div>  <div>Hunger</div>
+  <div class="bar"><div id="h" class="fill" style="background:#ff4d4d"></div></div>  <div>Energy</div>
+  <div class="bar"><div id="e" class="fill" style="background:#4da6ff"></div></div>  <div>Happiness</div>
+  <div class="bar"><div id="ha" class="fill" style="background:#4dff88"></div></div><button onclick="feed()">🍔 Feed</button> <button onclick="sleep()">😴 Sleep</button>
 
-function makeCrew(x,y,color,parent=phone){
-  const d = document.createElement('div');
-  d.className='crew';
-  d.innerHTML = `
-  <svg viewBox="0 0 64 96">
-    <rect x="10" y="20" rx="20" ry="20" width="40" height="60" fill="${color}"/>
-    <rect x="18" y="10" rx="15" ry="15" width="28" height="30" fill="${color}"/>
-    <ellipse cx="38" cy="40" rx="12" ry="8" fill="#9fe7ff"/>
+</div><div id="world"></div>
+<div id="night"></div>
+<div id="hint">Tap crewmates at night 👀</div><script>
+let hunger=100, energy=100, happy=100;
+let night=false;
+const world=document.getElementById("world");
+const nightScreen=document.getElementById("night");
+
+function svgCrew(color){
+  return `
+  <svg class='bubble' viewBox='0 0 64 96'>
+    <rect x='10' y='20' width='44' height='60' rx='20' fill='${color}'/>
+    <rect x='16' y='8' width='32' height='28' rx='14' fill='${color}'/>
+    <ellipse cx='40' cy='42' rx='12' ry='8' fill='#aee9ff'/>
   </svg>`;
-  parent.appendChild(d);
+}
 
-  let obj={el:d,x,y,vx:Math.random()*2+1,vy:0,drag:false,target:null,mode:'walk'};
+function makeCrew(x,y,color,isImpostor=false){
+  const d=document.createElement("div");
+  d.className="crewmate";
+  d.innerHTML=svgCrew(color);
+  world.appendChild(d);
 
-  d.addEventListener('touchstart',()=> obj.drag=true);
-  document.addEventListener('touchmove',e=>{
+  let obj={el:d,x,y,vx:(Math.random()<0.5?-1:1)*1.2,vy:0,imp:isImpostor,drag:false};
+
+  d.addEventListener("touchstart",()=>obj.drag=true);
+  document.addEventListener("touchend",()=>obj.drag=false);
+  document.addEventListener("touchmove",e=>{
     if(obj.drag){
-      const r = parent.getBoundingClientRect();
-      obj.x = e.touches[0].clientX - r.left - 20;
-      obj.y = e.touches[0].clientY - r.top - 30;
+      const r=world.getBoundingClientRect();
+      obj.x=e.touches[0].clientX-r.left-25;
+      obj.y=e.touches[0].clientY-r.top-35;
     }
   });
-  document.addEventListener('touchend',()=> obj.drag=false);
+
+  obj.el.onclick=()=>{
+    if(night){
+      if(obj.imp){ winNight(true); } else { winNight(false); }
+    }
+  };
 
   crew.push(obj);
 }
 
-function start(){
-  document.getElementById('preview').style.display='block';
-  document.getElementById('hint').style.display='block';
-  phone.innerHTML=''; crew=[];
+let crew=[];
 
-  makeCrew(50,100,'red');
-  makeCrew(150,200,'blue');
-  makeCrew(120,300,'green');
-}
-
-// TAP TO SPAWN
-document.addEventListener('click',e=>{
-  if(e.target.id!=='phone') return;
-  const r = phone.getBoundingClientRect();
-  makeCrew(e.clientX-r.left, e.clientY-r.top, 'yellow');
-});
-
-function ai(c){
-  // find nearest target
-  let t = crew.find(o=>o!==c);
-  if(t){
-    let dx = t.x - c.x;
-    c.vx = Math.sign(dx)*1.5;
+function spawnDay(){
+  world.innerHTML="";
+  crew=[];
+  for(let i=0;i<4;i++){
+    makeCrew(80*i+40,200,"#ff3b3b",false);
   }
 }
 
-function loop(){
+function startNight(){
+  night=true;
+  nightScreen.style.display="block";
+  nightScreen.innerHTML="";
+
+  world.innerHTML="";
+  crew=[];
+
+  let imp=Math.floor(Math.random()*5);
+
+  for(let i=0;i<5;i++){
+    let c=document.createElement("div");
+    c.className="crewmate";
+    c.innerHTML=svgCrew(i===imp?"black":"#ff3b3b");
+    nightScreen.appendChild(c);
+
+    let obj={
+      el:c,
+      x:Math.random()*250,
+      y:Math.random()*400,
+      vx:(Math.random()-0.5)*2,
+      vy:(Math.random()-0.5)*2,
+      imp:i===imp
+    };
+
+    c.onclick=()=>winNight(obj.imp);
+    crew.push(obj);
+  }
+}
+
+function winNight(ok){
+  night=false;
+  nightScreen.style.display="none";
+
+  if(ok) happy+=20;
+  else { hunger-=20; energy-=20; }
+
+  spawnDay();
+}
+
+function feed(){ hunger+=20; happy+=5; }
+function sleep(){ energy+=30; }
+
+function update(){
+  hunger-=0.3;
+  energy-=0.2;
+  happy-=0.1;
+
+  document.getElementById("h").style.width=hunger+"%";
+  document.getElementById("e").style.width=energy+"%";
+  document.getElementById("ha").style.width=happy+"%";
+
+  if(!night && Math.random()<0.005) startNight();
+
   crew.forEach(c=>{
     if(!c.drag){
-      ai(c);
+      // SMART AI
+      let target = crew[Math.floor(Math.random()*crew.length)];
+      if(target && target!==c){
+        c.vx += (target.x-c.x)*0.001;
+        c.vy += (target.y-c.y)*0.001;
+      }
 
       c.x += c.vx;
-      c.vy += 0.4;
       c.y += c.vy;
 
       // WALL CRAWL
-      if(c.x<0){ c.x=0; c.mode='climb'; c.vy=-2; }
-      if(c.x>260){ c.x=260; c.mode='climb'; c.vy=-2; }
+      if(c.x<0||c.x>300){ c.vx*=-1; c.vy=-2; }
+      if(c.y<0) c.y=0;
+      if(c.y>500){ c.y=500; c.vy=-3; }
 
-      if(c.mode==='climb'){
-        c.y += c.vy;
-        if(c.y<0){ c.mode='walk'; }
-      }
-
-      if(c.y>540){ c.y=540; c.vy=-6; c.mode='walk'; }
-
-      // ESCAPE PHONE
-      if(Math.random()<0.001 && c.el.parentNode===phone){
-        document.body.appendChild(c.el);
-      }
+      c.el.style.left=c.x+"px";
+      c.el.style.top=c.y+"px";
     }
-
-    c.el.style.left=c.x+'px';
-    c.el.style.top=c.y+'px';
   });
 
-  requestAnimationFrame(loop);
+  requestAnimationFrame(update);
 }
-loop();
 
-// SIMPLE PWA SW
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js');
-}
+spawnDay();
+update();
 </script></body>
-</html><!-- manifest.json -->{ "name":"Tiny Among Us", "short_name":"AmongUs", "start_url":".", "display":"standalone", "background_color":"#000", "theme_color":"#000" }
-
-<!-- sw.js -->self.addEventListener('install',e=>{ e.waitUntil(caches.open('v1').then(c=>c.addAll(['./']))); }); self.addEventListener('fetch',e=>{ e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))); });
+</html>

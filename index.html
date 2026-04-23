@@ -1,0 +1,110 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tiny Among Us (Mobile)</title>
+<style>
+  body {
+    margin: 0;
+    height: 200vh;
+    background: #111;
+    overflow: hidden;
+    touch-action: none;
+  }#character { width: 40px; height: 60px; background: red; border-radius: 20px 20px 10px 10px; position: fixed; top: 100px; left: 100px; }
+
+#visor { width: 25px; height: 15px; background: lightblue; border-radius: 10px; position: absolute; top: 15px; left: 7px; }
+
+/* Mobile buttons */ .controls { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; }
+
+.btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; user-select: none; } </style>
+
+</head>
+<body><div id="character">
+  <div id="visor"></div>
+</div><div class="controls">
+  <div>
+    <div class="btn" id="left">⬅️</div>
+    <div class="btn" id="right">➡️</div>
+  </div>
+  <div class="btn" id="jump">⬆️</div>
+</div><script>
+const char = document.getElementById("character");
+
+let x = 100;
+let y = 100;
+let velocityY = 0;
+let gravity = 0.5;
+let jumping = false;
+
+let moveLeft = false;
+let moveRight = false;
+
+// Touch drag
+let isDragging = false;
+let offsetX, offsetY;
+
+char.addEventListener("touchstart", (e) => {
+  isDragging = true;
+  const touch = e.touches[0];
+  offsetX = touch.clientX - char.offsetLeft;
+  offsetY = touch.clientY - char.offsetTop;
+});
+
+document.addEventListener("touchmove", (e) => {
+  if (isDragging) {
+    const touch = e.touches[0];
+    x = touch.clientX - offsetX;
+    y = touch.clientY - offsetY;
+  }
+});
+
+document.addEventListener("touchend", () => {
+  isDragging = false;
+});
+
+// Buttons
+function holdButton(btn, action) {
+  btn.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    action(true);
+  });
+
+  btn.addEventListener("touchend", () => {
+    action(false);
+  });
+}
+
+holdButton(document.getElementById("left"), (v) => moveLeft = v);
+holdButton(document.getElementById("right"), (v) => moveRight = v);
+
+// Jump button
+const jumpBtn = document.getElementById("jump");
+jumpBtn.addEventListener("touchstart", () => {
+  if (!jumping) {
+    velocityY = -10;
+    jumping = true;
+  }
+});
+
+function gameLoop() {
+  if (moveLeft) x -= 3;
+  if (moveRight) x += 3;
+
+  velocityY += gravity;
+  y += velocityY;
+
+  if (y > window.innerHeight - 60) {
+    y = window.innerHeight - 60;
+    velocityY = 0;
+    jumping = false;
+  }
+
+  char.style.left = x + "px";
+  char.style.top = y + "px";
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script></body>
+</html>

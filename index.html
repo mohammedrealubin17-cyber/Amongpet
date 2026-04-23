@@ -2,122 +2,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tiny Among Us Advanced</title>
+<title>Tiny Among Us PWA</title>
+<link rel="manifest" href="manifest.json">
 <style>
-  body { margin:0; background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; }.btn { margin:15px; padding:15px 25px; font-size:18px; border:none; border-radius:10px; cursor:pointer; } .android { background:#3ddc84; } .ios { background:#007aff; color:white; }
+  body { margin:0; background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; overflow:hidden; }
+  .btn { margin:15px; padding:15px 25px; font-size:18px; border:none; border-radius:10px; }
+  .android { background:#3ddc84; }
+  .ios { background:#007aff; color:white; }#preview { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); } #phone { width:300px; height:600px; background:#222; margin:40px auto; border-radius:30px; position:relative; overflow:hidden; }
 
-#preview { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); }
+.crew { position:absolute; width:40px; height:60px; }
 
-#phone { width:300px; height:600px; background:#222; margin:40px auto; border-radius:30px; position:relative; overflow:hidden; }
+/* Among Us style using SVG */ .crew svg { width:100%; height:100%; }
 
-.crewmate { width:40px; height:60px; background:red; border-radius:20px 20px 10px 10px; position:absolute; }
-
-.visor { width:25px; height:15px; background:lightblue; border-radius:10px; position:absolute; top:15px; left:7px; }
-
-#okBtn { margin-top:10px; padding:10px 20px; font-size:18px; }
-
-#installHint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:#333; padding:10px 15px; border-radius:10px; display:none; } </style>
+#hint { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:#333; padding:10px; border-radius:10px; display:none; } </style>
 
 </head>
-<body><h1>Download Tiny Among Us</h1>
-<button class="btn android" onclick="startInstall()">Download for Android</button>
-<button class="btn ios" onclick="startInstall()">Download for iOS</button><div id="preview">
-  <div id="phone"></div>
-  <button id="okBtn" onclick="hidePreview()">OK</button>
-</div><div id="installHint">Tap ⋮ → Add to Home Screen</div><audio id="popSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio>
+<body><h1>Tiny Among Us</h1>
+<button class="btn android" onclick="start()">Download Android</button>
+<button class="btn ios" onclick="start()">Download iOS</button><div id="preview"><div id="phone"></div></div>
+<div id="hint">Add to Home Screen ↑</div><script>
+const phone = document.getElementById('phone');
+let crew = [];
 
-<script>
-const phone = document.getElementById("phone");
-const sound = document.getElementById("popSound");
+function makeCrew(x,y,color,parent=phone){
+  const d = document.createElement('div');
+  d.className='crew';
+  d.innerHTML = `
+  <svg viewBox="0 0 64 96">
+    <rect x="10" y="20" rx="20" ry="20" width="40" height="60" fill="${color}"/>
+    <rect x="18" y="10" rx="15" ry="15" width="28" height="30" fill="${color}"/>
+    <ellipse cx="38" cy="40" rx="12" ry="8" fill="#9fe7ff"/>
+  </svg>`;
+  parent.appendChild(d);
 
-let crewmates = [];
+  let obj={el:d,x,y,vx:Math.random()*2+1,vy:0,drag:false,target:null,mode:'walk'};
 
-function createCrewmate(x,y,color){
-  const c = document.createElement("div");
-  c.className = "crewmate";
-  c.style.background = color;
-  c.style.left = x+"px";
-  c.style.top = y+"px";
-
-  const visor = document.createElement("div");
-  visor.className = "visor";
-  c.appendChild(visor);
-
-  phone.appendChild(c);
-
-  let obj = {el:c,x,y,vx:Math.random()*2+1,vy:0,drag:false};
-
-  // FIXED DRAG
-  c.addEventListener("touchstart", (e)=>{
-    obj.drag=true;
-  });
-
-  document.addEventListener("touchmove", (e)=>{
+  d.addEventListener('touchstart',()=> obj.drag=true);
+  document.addEventListener('touchmove',e=>{
     if(obj.drag){
-      const rect = phone.getBoundingClientRect();
-      obj.x = e.touches[0].clientX - rect.left - 20;
-      obj.y = e.touches[0].clientY - rect.top - 30;
+      const r = parent.getBoundingClientRect();
+      obj.x = e.touches[0].clientX - r.left - 20;
+      obj.y = e.touches[0].clientY - r.top - 30;
     }
   });
+  document.addEventListener('touchend',()=> obj.drag=false);
 
-  document.addEventListener("touchend", ()=> obj.drag=false);
-
-  crewmates.push(obj);
+  crew.push(obj);
 }
 
-function startInstall(){
-  document.getElementById("preview").style.display="block";
-  document.getElementById("installHint").style.display="block";
-  sound.play();
+function start(){
+  document.getElementById('preview').style.display='block';
+  document.getElementById('hint').style.display='block';
+  phone.innerHTML=''; crew=[];
 
-  phone.innerHTML="";
-  crewmates=[];
-
-  // MULTIPLE CREWMATES
-  createCrewmate(50,100,"red");
-  createCrewmate(150,200,"blue");
-  createCrewmate(100,300,"green");
+  makeCrew(50,100,'red');
+  makeCrew(150,200,'blue');
+  makeCrew(120,300,'green');
 }
 
-function hidePreview(){
-  document.getElementById("preview").style.display="none";
-  document.getElementById("installHint").style.display="none";
+// TAP TO SPAWN
+document.addEventListener('click',e=>{
+  if(e.target.id!=='phone') return;
+  const r = phone.getBoundingClientRect();
+  makeCrew(e.clientX-r.left, e.clientY-r.top, 'yellow');
+});
+
+function ai(c){
+  // find nearest target
+  let t = crew.find(o=>o!==c);
+  if(t){
+    let dx = t.x - c.x;
+    c.vx = Math.sign(dx)*1.5;
+  }
 }
 
 function loop(){
-  crewmates.forEach(c=>{
+  crew.forEach(c=>{
     if(!c.drag){
+      ai(c);
+
       c.x += c.vx;
-
-      // WALL CLIMB
-      if(c.x < 0 || c.x > 260){
-        c.vx *= -1;
-        c.vy = -8; // climb jump
-      }
-
       c.vy += 0.4;
       c.y += c.vy;
 
-      // FLOOR
-      if(c.y > 540){
-        c.y = 540;
-        c.vy = -7;
+      // WALL CRAWL
+      if(c.x<0){ c.x=0; c.mode='climb'; c.vy=-2; }
+      if(c.x>260){ c.x=260; c.mode='climb'; c.vy=-2; }
+
+      if(c.mode==='climb'){
+        c.y += c.vy;
+        if(c.y<0){ c.mode='walk'; }
       }
 
-      // CEILING
-      if(c.y < 0){
-        c.y = 0;
-        c.vy = 2;
+      if(c.y>540){ c.y=540; c.vy=-6; c.mode='walk'; }
+
+      // ESCAPE PHONE
+      if(Math.random()<0.001 && c.el.parentNode===phone){
+        document.body.appendChild(c.el);
       }
     }
 
-    c.el.style.left = c.x+"px";
-    c.el.style.top = c.y+"px";
+    c.el.style.left=c.x+'px';
+    c.el.style.top=c.y+'px';
   });
 
   requestAnimationFrame(loop);
 }
-
 loop();
+
+// SIMPLE PWA SW
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+}
 </script></body>
-</html>
+</html><!-- manifest.json -->{ "name":"Tiny Among Us", "short_name":"AmongUs", "start_url":".", "display":"standalone", "background_color":"#000", "theme_color":"#000" }
+
+<!-- sw.js -->self.addEventListener('install',e=>{ e.waitUntil(caches.open('v1').then(c=>c.addAll(['./']))); }); self.addEventListener('fetch',e=>{ e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))); });
